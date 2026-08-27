@@ -250,9 +250,19 @@ def evaluate_equations_images(
     Returns:
         (success: bool, data: dict, error_message: str)
     """
-    effective_api_key = api_key or os.getenv("GROQ_API_KEY")
+    effective_api_key = api_key
     if not effective_api_key or not effective_api_key.strip():
-        return False, {}, "Groq API Key is required. Please set GROQ_API_KEY in .env or enter it in the sidebar."
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and "GROQ_API_KEY" in st.secrets:
+                effective_api_key = st.secrets["GROQ_API_KEY"]
+        except Exception:
+            pass
+    if not effective_api_key or not effective_api_key.strip():
+        effective_api_key = os.getenv("GROQ_API_KEY", "")
+
+    if not effective_api_key or not effective_api_key.strip():
+        return False, {}, "Groq API Key is required. Please configure GROQ_API_KEY in Streamlit Secrets or .env."
 
     if not rubric_image_bytes:
         return False, {}, "Rubric image cannot be empty."
@@ -342,9 +352,19 @@ def evaluate_equations_text(
     Returns:
         (success: bool, data: dict, error_message: str)
     """
-    effective_api_key = api_key or os.getenv("GROQ_API_KEY")
+    effective_api_key = api_key
     if not effective_api_key or not effective_api_key.strip():
-        return False, {}, "Groq API Key is required. Please set GROQ_API_KEY in .env or enter it in the sidebar."
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and "GROQ_API_KEY" in st.secrets:
+                effective_api_key = st.secrets["GROQ_API_KEY"]
+        except Exception:
+            pass
+    if not effective_api_key or not effective_api_key.strip():
+        effective_api_key = os.getenv("GROQ_API_KEY", "")
+
+    if not effective_api_key or not effective_api_key.strip():
+        return False, {}, "Groq API Key is required. Please configure GROQ_API_KEY in Streamlit Secrets or .env."
 
     if not rubric.strip():
         return False, {}, "Marking rubric cannot be empty."

@@ -8,6 +8,17 @@ from evaluator import evaluate_equations_images, evaluate_equations_text
 # Load environment variables from .env
 load_dotenv()
 
+# Safely resolve API key from secrets or .env
+server_api_key = ""
+try:
+    if hasattr(st, "secrets") and "GROQ_API_KEY" in st.secrets:
+        server_api_key = str(st.secrets["GROQ_API_KEY"]).strip()
+except Exception:
+    pass
+
+if not server_api_key:
+    server_api_key = os.getenv("GROQ_API_KEY", "").strip()
+
 # Page configuration - must be before any other Streamlit UI calls
 st.set_page_config(
     page_title="Equation Comparator & Marks Allocator",
@@ -17,53 +28,13 @@ st.set_page_config(
 
 # Sidebar for settings
 with st.sidebar:
-    st.header("⚙️ Configuration")
-    
-    env_api_key = os.getenv("GROQ_API_KEY", "")
-    api_key_input = st.text_input(
-        "Groq API Key",
-        value=env_api_key,
-        type="password",
-        help="Reads from .env by default or enter your Groq API key directly."
-    )
+    st.header("⚙️ Options")
     
     input_mode = st.radio(
         "Input Mode",
         options=["🖼️ Images (Rubric & Answer)", "✍️ Text (Plain Equations)"],
         index=0
     )
-    
-    if "Images" in input_mode:
-        model_options = [
-            "qwen/qwen3.6-27b",
-            "qwen-2.5-32b",
-            "Custom..."
-        ]
-    else:
-        model_options = [
-            "llama-3.3-70b-versatile",
-            "llama-3.1-8b-instant",
-            "qwen-qwq-32b",
-            "mixtral-8x7b-32768",
-            "Custom..."
-        ]
-        
-    selected_model = st.selectbox(
-        "Model",
-        options=model_options,
-        index=0,
-        help="Select the Groq Vision / LLM model to use for comparison."
-    )
-    
-    if selected_model == "Custom...":
-        model_choice = st.text_input(
-            "Custom Model ID",
-            value="qwen/qwen3.6-27b",
-            help="Enter any valid Groq model ID."
-        )
-    else:
-        model_choice = selected_model
-
     
     st.markdown("---")
     st.markdown(
@@ -124,8 +95,8 @@ if "Images" in input_mode:
     evaluate_btn = st.button("🚀 Evaluate Answer from Images", type="primary", use_container_width=True)
 
     if evaluate_btn:
-        if not api_key_input.strip():
-            st.error("⚠️ Groq API Key is missing. Please provide it in the sidebar or in your `.env` file.")
+        if not server_api_key:
+            st.error("⚠️ GROQ_API_KEY is not configured. Please add it to your Streamlit Secrets or .env file.")
         elif not rubric_file:
             st.warning("⚠️ Please upload a marking rubric image.")
         elif not student_file:
@@ -143,8 +114,7 @@ if "Images" in input_mode:
                     student_image_bytes=student_bytes,
                     rubric_mime=rubric_mime,
                     student_mime=student_mime,
-                    api_key=api_key_input,
-                    model_name=model_choice
+                    api_key=server_api_key
                 )
 
             if not success:
@@ -214,8 +184,8 @@ else:
     evaluate_btn = st.button("🚀 Evaluate Answer from Text", type="primary", use_container_width=True)
 
     if evaluate_btn:
-        if not api_key_input.strip():
-            st.error("⚠️ Groq API Key is missing. Please provide it in the sidebar or in your `.env` file.")
+        if not server_api_key:
+            st.error("⚠️ GROQ_API_KEY is not configured. Please add it to your Streamlit Secrets or .env file.")
         elif not rubric_text.strip():
             st.warning("⚠️ Please provide a marking rubric.")
         elif not student_text.strip():
@@ -225,8 +195,7 @@ else:
                 success, result_data, error_msg = evaluate_equations_text(
                     rubric=rubric_text,
                     student_answer=student_text,
-                    api_key=api_key_input,
-                    model_name=model_choice
+                    api_key=server_api_key
                 )
 
             if not success:
